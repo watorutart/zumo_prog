@@ -1,0 +1,91 @@
+#include <kernel.h>
+#include "kernel_cfg.h"
+#include "app.h"
+
+#include "mbed.h"
+
+#include "app_config.h"
+
+#include "Zumo.h"
+#include "Milkcocoa.h"
+
+extern void onpush(MQTT::MessageData& md);
+Serial pc(USBTX, USBRX);
+Zumo zumo;
+
+static int speed = 80;
+static int steer = 0;
+DigitalOut ledR(LED1);
+
+DigitalIn sw1(D12);
+
+void onpush(MQTT::MessageData& md)
+{
+	pc.printf("onpush\n\r");
+    MQTT::Message &message = md.message;
+    DataElement de = DataElement((char*)message.payload);
+	int v = de.getInt("z");
+}
+
+void back_inside_line(int set_speed){
+	zumo.driveTank(-set_speed, -set_speed);
+	dly_tsk(500);
+	zumo.driveTank(set_speed, -set_speed);
+	dly_tsk(1000);
+	zumo.driveTank(set_speed, set_speed);
+}
+
+int mode_change(int mode){
+	switch(mode){
+		case 0:
+			return 0;
+		case 1:
+			return 50;
+		case 2:
+			return 70;
+	}
+}
+
+void task_main(intptr_t exinf) {
+	int n;
+	sw1.mode(PullUp);
+	pc.baud(115200);
+
+	unsigned int IR_values[6];
+	int black = 400;
+	int set_speed = 70;
+
+	zumo.driveTank(set_speed, set_speed);
+	int stop = 0;
+	int slow_speed = 1;
+	int high_speed = 2;
+	int mode_type[3] = {stop, slow_speed, high_speed};
+	int set_mode = 0;
+
+	while(1){
+		n = sw1;
+		if(n == 0){
+			if(set_mode >= 3){
+				set_mode = 0;
+			}
+			set_speed = mode_change(mode_type[set_mode]);
+			pc.printf("%d \r\n", set_speed);
+			set_mode++;
+			while(n == 0){
+				//n == 1でループを抜け出す
+				n = sw1;
+				dly_tsk(100);
+			}
+			zumo.driveTank(set_speed, set_speed);
+		}
+
+		zumo.readAnalogIrValue(IR_values);
+
+		if(IR_values[3] >= black){
+			back_inside_line(set_speed);
+		}
+		//dly_tsk(50);
+	}
+
+	pc.printf("loop end\r\n");
+}

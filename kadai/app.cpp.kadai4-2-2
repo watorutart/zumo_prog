@@ -1,0 +1,91 @@
+#include <kernel.h>
+#include "kernel_cfg.h"
+#include "app.h"
+
+#include "mbed.h"
+
+#include "app_config.h"
+
+#include "Zumo.h"
+#include "Milkcocoa.h"
+
+extern void onpush(MQTT::MessageData& md);
+Serial pc(USBTX, USBRX);
+Zumo zumo;
+
+static int speed = 80;
+static int steer = 0;
+DigitalOut ledR(LED1);
+
+DigitalIn sw1(D12);
+
+void onpush(MQTT::MessageData& md)
+{
+	pc.printf("onpush\n\r");
+    MQTT::Message &message = md.message;
+    DataElement de = DataElement((char*)message.payload);
+	int v = de.getInt("z");
+}
+
+void task_main(intptr_t exinf) {
+	int n;
+	sw1.mode(PullUp);
+	pc.baud(115200);
+
+	double time_left = 0;
+	double time_right = 0;
+	bool arrival_left = false;
+	bool arrival_right = false;
+	Timer timer1;
+
+	int black = 400;
+	unsigned int IR_values[6];
+
+	double x = 5;
+	double y;
+
+	timer1.reset();
+	timer1.start();
+
+	zumo.driveTank(100, 100);
+	while(1){
+		n = sw1;
+		if(n == 0){
+			zumo.driveTank(0, 0);
+			pc.printf("end\r\n");
+			return;
+		}
+
+		zumo.readAnalogIrValue(IR_values);
+		if(!arrival_left){
+			if(IR_values[5] >= black){
+				arrival_left = true;
+				time_left = timer1.read_ms();
+				pc.printf("L OK!! time:%lf\r\n", time_left);
+			}
+		}
+		if(!arrival_right){
+			if(IR_values[0] >= black){
+				arrival_right = true;
+				time_right = timer1.read_ms();
+				pc.printf("R OK! time:%lf\r\n", time_right);
+			}
+		}
+
+		if(arrival_left && arrival_right){
+			zumo.driveTank(0, 0);
+			if(time_left > time_right){
+				y = (time_left - time_right) * 0.02;
+			}
+			else {
+				y = (time_right - time_left) * 0.02;
+			}
+			pc.printf("left:%lf, right:%lf, timer:%d \r\n", time_left, time_right, timer1.read_ms());
+			double deg = atan2(y, x);
+			pc.printf("y:%lf, atan2:%lf, deg:%lf \r\n", y, deg, deg*180/3.14);
+			break;
+		}
+	}
+
+	pc.printf("loop end\r\n");
+}
