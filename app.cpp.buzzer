@@ -1,0 +1,71 @@
+#include <kernel.h>
+#include "kernel_cfg.h"
+#include "app.h"
+
+#include "mbed.h"
+
+#include "app_config.h"
+
+#include "Zumo.h"
+#include "Milkcocoa.h"
+
+extern void onpush(MQTT::MessageData& md);
+Serial pc(USBTX, USBRX);
+Zumo zumo;
+
+static int speed = 80;
+static int steer = 0;
+DigitalOut ledR(LED1);
+
+DigitalIn sw1(D12);
+
+float doremi[8] = {2093.005, 2349.318, 2637.020, 2793.826, 3135.963, 3520.000, 3951.066, 4186.009};
+int doremi_counter = 0;
+
+void task_main(intptr_t exinf) {
+	int n = -1;
+	int loopcount = 0;
+	float hz = 1000;
+	sw1.mode(PullUp);
+	pc.baud(115200);
+
+	pc.printf("buzzer\r\n");
+	/*
+	zumo.driveTank(100, 100);
+	zumo.setBuzzerHz(hz);
+	while(1){
+		zumo.buzzerOn();
+		dly_tsk(500);
+		zumo.buzzerOff();
+		hz = doremi[doremi_counter++];
+		if(doremi_counter == 8){
+			doremi_counter = 0;
+		}
+		zumo.setBuzzerHz(hz);
+	}*/
+	play_se();
+	zumo.buzzerOff();
+	pc.printf("end\r\n");
+}
+
+void play_se(){
+	zumo.setBuzzerHz(doremi[5]);
+	zumo.buzzerOn();
+	dly_tsk(100);
+	zumo.buzzerOff();
+	zumo.setBuzzerHz(doremi[6]);
+	zumo.buzzerOn();
+	dly_tsk(100);
+	zumo.buzzerOff();
+	
+	zumo.setBuzzerHz(doremi[6]);
+	zumo.buzzerOn();
+	dly_tsk(100);
+	zumo.buzzerOff();
+	
+	zumo.setBuzzerHz(doremi[7]);
+	zumo.buzzerOn();
+	dly_tsk(500);
+	zumo.buzzerOff();
+	
+}

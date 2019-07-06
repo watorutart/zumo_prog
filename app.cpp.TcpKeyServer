@@ -1,0 +1,125 @@
+#include <kernel.h>
+#include "kernel_cfg.h"
+#include "app.h"
+#include "mbed.h"
+#include "app_config.h"
+#include "Zumo.h"
+#include "Milkcocoa.h"
+
+Serial pc(USBTX, USBRX);
+Zumo zumo;
+GR_PEACH_WlanBP3595 wlan; //Wifi通信用
+
+//通信用ルーチンのプロトタイプ宣言
+extern void WiFi_init();
+extern void connect_tcpserver_session();
+static void _wlan_inf_callback(uint8_t ucType, uint16_t usWid, uint16_t usSize,
+		uint8_t *pucData);
+static void error_wait(int ret, const char* str);
+
+//通信用変数宣言
+TCPSocketConnection socket;		// TCPソケット変数
+TCPSocketServer server;
+int ret;
+const int port = 9000;			// 接続相手のサーバ/PCのポート番号
+
+//LED
+DigitalOut led_red(LED1);
+DigitalOut led_green(LED2);
+DigitalOut led_blue(LED3);
+DigitalOut led_red2(LED4);
+DigitalOut led_orange(D13);
+
+//メインルーチン
+void task_main(intptr_t exinf) {
+	pc.baud(115200);
+	const char *buf;
+	char str[40];
+	char rstr[10];
+	// wifi initialize
+	WiFi_init();
+	// TCP Socket connect　　--　establish session procedure
+	connect_tcpserver_session();
+
+	socket.receive(str, 20);
+	pc.printf("receive from PC client %s\n",str);
+	socket.send ("OK\n",3);
+
+	while (1) {
+		ret = socket.receive(rstr, 5);	// TCPセッションからデータを受信
+		if (ret >= 0){
+			pc.printf("rcv command = %c\r\n",rstr[0]);
+
+			switch (rstr[0]) {
+				case '8':
+					pc.printf("8\n\r");  // forward
+					break;
+				case '5':
+					pc.printf("5\n\r");  // stop
+					break;
+				case '2':
+					pc.printf("2\n\r");	// backward
+					break;
+				case '6':
+					pc.printf("6\n\r");	// turn right
+					break;
+				case '4':
+					pc.printf("4\n\r");	// turn left
+					break;
+			}
+
+			socket.send ("OK\n",3);
+		}
+		dly_tsk(20);
+	}
+}
+
+//通信用ルーチン
+// (1)WiFi Routerとの接続
+void WiFi_init() {
+	wlan.setWlanCbFunction(_wlan_inf_callback);
+	pc.printf("\r\ninitializing\r\n");
+	ret = wlan.init(IP_ADDRESS, SUBNET_MASK, DEFAULT_GATEWAY);
+	error_wait(ret, "init");	// if error, wait
+	pc.printf("My addr=%s\r\n",IP_ADDRESS);
+	pc.printf("wlan connecting\r\n");
+	ret = wlan.connect(WLAN_SSID, WLAN_PSK);
+	error_wait(ret, "wifi connect error");	// if error, message&Red LED turn on
+	pc.printf("wlan connectted SSID=%s\r\n",WLAN_SSID);		// if no error , print this message
+//　　wifi routerとの接続が成功するとZUMOの青色LEDが点灯する
+}
+//　（２）TCP/IP通信のセッション確立処理
+void connect_tcpserver_session() {
+//	pc.printf("socket connecting\r\n");
+	int retry = 3;
+	ret = server.bind(port);
+	pc.printf("bind\r\n");
+	ret = server.listen();
+	pc.printf("listen\r\n");
+	server.accept(socket);
+	pc.printf("accept\r\n");	//　成功
+}
+//(3)コールバックルーチン
+static void _wlan_inf_callback(uint8_t ucType, uint16_t usWid, uint16_t usSize,
+		uint8_t *pucData) {
+	if (ucType == 'I') {
+		if (usWid == 0x0005) {    // WID_STATUS
+			if (pucData[0] == 0x01) {     // CONNECTED
+				led_green = 1;
+			} else {
+				led_green = 0;
+			}
+		}
+	}
+}
+//(4)エラー検出用ルーチン
+static void error_wait(int ret, const char* str) {
+	if (ret != 0) {
+		pc.printf(str);
+		/* error */
+		led_red = 1;
+		while (1) {
+			Thread::wait(1000);
+		}
+	}
+}
