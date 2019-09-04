@@ -1,0 +1,69 @@
+#include <kernel.h>
+#include "kernel_cfg.h"
+#include "app.h"
+
+#include "mbed.h"
+
+#include "app_config.h"
+
+#include "Zumo.h"
+#include "Milkcocoa.h"
+
+Serial pc(USBTX, USBRX);
+Zumo zumo;
+
+static int speed = 80;
+static int steer = 0;
+DigitalOut ledR(LED1);
+
+class Test{
+public:
+	long id;
+	char info[6][10];
+	int Astats;
+	int Bstats;
+	long Xtime[6];
+	void ShowData();
+};
+
+void Test::ShowData(){
+	//cout << number << "\r\n";
+	//cout << name << "\r\n";
+	pc.printf("test.id: %ld \r\n", id);
+	for(int i=0;i<6;i++){
+		pc.printf("test.info: %s ", info[i]);
+		pc.printf("test.Xtime: %ld \r\n", Xtime[i]);
+	}
+	pc.printf("test stats A,B: %d, %d \r\n", Astats, Bstats);
+
+	return;
+}
+
+void task_main(intptr_t exinf) {
+	int test_num = 780; //作成するインスタンスの数
+	Test test[test_num];
+	pc.baud(115200);
+
+	long test_id = 1;
+	char text[10] = "abcdefghi";
+	int stats[5] = {1,2,3,4,5};
+	long xtime[6] = {1000,2000,3000,4000,5000,6000};
+
+	for(int i=0;i<test_num;i++){
+		pc.printf("loop num: %d \r\n", i);
+		test[i].id = test_id++;
+		for(int j=0;j<6;j++){
+			strcpy(test[i].info[j], text);
+			test[i].Xtime[j] = xtime[j]++;
+		}
+		test[i].Astats = stats[i%5];
+		test[i].Bstats = stats[i%5];
+	}
+
+	dly_tsk(100);
+
+	//pc.printf("\r\n class member: %d, %s \r\n", test.number, test.name);
+	for(int i=0;i<test_num;i++){
+		test[i].ShowData();
+	}
+}
