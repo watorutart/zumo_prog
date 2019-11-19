@@ -37,97 +37,63 @@ void onpush(MQTT::MessageData& md)
 
 void task_main(intptr_t exinf) {
 	int n;
-	Timer timer1;
-	int t;
-
-	short X_data[100], Y_data[100];
-	short X_result[100], Y_result[100];
-
-	int loop = 0;
-	int l_count = 0;
-
 	sw1.mode(PullUp);
 	pc.baud(115200);
 
+	short X_data[100];
+	short Y_data[100];
+
+	int loop = 0;
+
 	setOffset();
 
-	//zumo.driveTank(100, 100);
+	zumo.driveTank(100, 100);
 
-	for(int i=0;i<100;i++){
-		X_data[i] = 0;
-		Y_data[i] = 0;
-	}
-
-	while(1){
+	while(loop < 100){
 		n = sw1;
 		if(n == 0){
 			pc.printf("1 push\r\n");
-
 			zumo.driveTank(0, 0);
-
-			while(n != 1){
-				pc.printf("n = 0\r\n");
-				n = sw1;
-			}
-
-			pc.printf("push end\r\n");
-
-			while(true){
-				n = sw1;
-				if(n == 0){
-					pc.printf("2 push\r\n");
-
-					//add line
-					disp_result(X_result, Y_result, l_count);
-
-					pc.printf("end\r\n");
-					return;
-				}
-			}
-		}
-
-		if(loop >= 100){
-			X_result[l_count] = avg(X_data, 100);
-		    Y_result[l_count] = avg(Y_data, 100);
-		    l_count++;
-			zumo.driveTank(100, -100);
-			dly_tsk(100);
-			zumo.driveTank(0, 0);
-			dly_tsk(50);
-			loop = 0;
+			break;
 		}
 
 		filtering();
-		//pc.printf("%d, %d, %d \r\n", x, y, z);
+		pc.printf("%d, %d, %d \r\n", x, y, z);
+		dly_tsk(10);
 
 		X_data[loop] = x;
 		Y_data[loop] = y;
 
 		loop++;
-		dly_tsk(10);
 	}
 
+	zumo.driveTank(0, 0);
 	pc.printf("loop end\r\n");
+
+	while(1) {
+		n = sw1;
+		if(n == 0){
+			pc.printf("1 push\r\n");
+			disp_result(X_data, Y_data, 100);
+			break;
+		}
+	}
+
+
 }
 
-short avg(short data[], int size){
-	int i;
-	long temp = 0;
-	short result = 0;
-
-	//pc.printf("data: %d\r\n", data[37]);
-
-	for(i=0;i<size;i++){
-		//pc.printf("data: %d\r\n", data[i]);
-		temp += data[i];
-		//pc.printf("temp: %d\r\n", temp);
+void setOffset(){
+	x_offset=y_offset=z_offset=0;
+	for (int i=0;i<buf_size*20;i++){
+		zumo.getAcceleration(&xFilter[0], &yFilter[0], &zFilter[0]);
+		x_offset+=xFilter[0];
+		y_offset+=yFilter[0];
+		z_offset+=zFilter[0];
+		dly_tsk(50);
 	}
-
-	result = temp/size;
-
-	//pc.printf("%d\r\n", result);
-
-	return result;
+	x_offset/=(buf_size*20);
+	y_offset/=(buf_size*20);
+	z_offset/=(buf_size*20);
 }
 
 void disp_result(short X_result[], short Y_result[], int size){
@@ -136,12 +102,6 @@ void disp_result(short X_result[], short Y_result[], int size){
 	for(i=0;i<size;i++){
 		pc.printf("%d,%d\r\n", X_result[i], Y_result[i]);
 	}
-}
-
-void setOffset(){
-	x_offset=0;
-	y_offset=0;
-	z_offset=0;
 }
 
 void filtering(){
