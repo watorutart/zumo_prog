@@ -19,6 +19,7 @@ Serial pc(USBTX, USBRX);
 Zumo zumo;
 
 DigitalOut ledR(LED1);
+DigitalOut ledG(LED2);
 DigitalIn sw1(D12);
 
 const int buf_size = 10;
@@ -27,21 +28,26 @@ short xFilter[buf_size], yFilter[buf_size],zFilter[buf_size];
 int x, y, z;
 
 void task_main(intptr_t exinf) {
-	int n;
 	sw1.mode(PullUp);
 
 	pc.baud(115200);
 
+	dly_tsk(500);
+
 	pc.printf("filtering...\r\n");
+	ledR = 1;
 	search_avgMagne();
+	ledR = 0;
 	pc.printf("filtering end \r\n");
 
-	//zumo.driveTank(100, 100);
-	//dly_tsk(300);
-	//zumo.driveTank(0, 0);
 
-	rotateX(false, 180);
+	for(int i=0; i<4 ; i++){
+		zumo.driveTank(100, 100);
+		dly_tsk(300);
+		zumo.driveTank(0, 0);
 
+		rotateX(false, 90);
+	}
 }
 
 void rotateX(bool clockwise, int x_angle){
@@ -54,9 +60,9 @@ void rotateX(bool clockwise, int x_angle){
 	border = getThreshold(clockwise, x_angle, deg);
 
 	if(clockwise){
-		zumo.driveTank(100, -100);
+		zumo.driveTank(70, -70);
 	} else {
-		zumo.driveTank(-100, 100);
+		zumo.driveTank(-70, 70);
 	}
 	while(1){
 		n = sw1;
@@ -112,6 +118,8 @@ void search_avgMagne(){
 	int temp_y[500];
 	int loop = 0;
 
+	short cx, cy, cz;
+
 	setOffset(0, 0, 0);
 	filtering();
 	x_ip = x;
@@ -120,21 +128,24 @@ void search_avgMagne(){
 	zumo.driveTank(70, -70);
 
 	while(1){
-		filtering();
+		zumo.getMagetism(&cx, &cy, &cz);
 
-		pc.printf("search: %d %d \r\n", x, y);
+		pc.printf("search: %d %d \r\n", cx, cy);
 
-		if(loop > 50 && abs(x_ip-x) < 50 && abs(y_ip-y) < 50){
+		if(loop > 50 && abs(x_ip-cx) < 80 && abs(y_ip-cy) < 80){
 			zumo.driveTank(0, 0);
 			break;
 		}
 
-		temp_x[loop++] = x;
-		temp_y[loop] = y;
+		temp_x[loop++] = cx;
+		temp_y[loop] = cy;
+
+		dly_tsk(10);
 	}
 	int avg_x = calc_avg(temp_x, loop);
 	int avg_y = calc_avg(temp_y, loop);
 
+	pc.printf("avg x, avg y = %d, %d \r\n", avg_x, avg_y);
 	setOffset(avg_x, avg_y, 0);
 	dly_tsk(100);
 }
@@ -167,3 +178,4 @@ void filtering(){
 		z-=z_offset;
 	}
 }
+
