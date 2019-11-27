@@ -45,7 +45,8 @@ void onpush(MQTT::MessageData& md)
 
 void task_main(intptr_t exinf) {
 	int gray_check;
-	int gray_count;
+	int gray_count, black_count;
+	int border;
 
 	resetPID();
 
@@ -62,23 +63,39 @@ void task_main(intptr_t exinf) {
 	//gray_checkをリセット
 	gray_check = 0;
 	gray_count = 0;
+	black_count = 0;
 
 	resetPID();
+	border = BW_border;
 
 	do{
 		//道の色を検出する
 		getIRvalue();
 		//ライントレースする
-		linetrace(IR_values, BW_border, kp, ki, kd);
-		//灰色の道ならgray_check++
-		if(IR_values[5] >= GRAY && IR_values[5] < BLACK){
-			gray_count++;
-			if(gray_count > 3){
-				gray_check++;
+		linetrace(IR_values, border, kp, ki, kd);
+		if(border == BW_border){
+			//灰色の道ならgray_check++
+			if(IR_values[5] >= GRAY && IR_values[5] < BLACK){
+				gray_count++;
+				if(gray_count >= 3){
+					gray_check++;
+					gray_count = 0;
+					border = GW_border;
+				}
+			} else {
 				gray_count = 0;
 			}
-		} else {
-			gray_count = 0;
+		}
+		else if(border == GW_border){
+			//灰色の道ならgray_check++
+			if(IR_values[5] >= BLACK){
+				black_count++;
+				if(gray_count >= 3){
+					border = BW_border;
+				}
+			} else {
+				black_count = 0;
+			}
 		}
 	} while(gray_check < 2);	//gray_check>=2なら停止
 	zumo.driveTank(0, 0);
@@ -101,9 +118,9 @@ void task_main(intptr_t exinf) {
 		} else {
 			gray_count = 0;
 		}
-	} while(1);	//gray_check>=2なら停止
+	} while(1);		//灰色の道を検出したら停止
 
-	//灰色の道を検出したら停止
+
 	zumo.driveTank(0, 0);
 }
 
