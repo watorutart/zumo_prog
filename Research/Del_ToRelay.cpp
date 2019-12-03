@@ -71,6 +71,10 @@ void task_main(intptr_t exinf) {
 
 	//衝突回避
 
+	cross_check = 0;
+	cross_count = 0;
+	resetPID();
+	
 	//ライントレースする
 	while(1) {
 		//道の色を検出
@@ -92,7 +96,7 @@ void task_main(intptr_t exinf) {
 	//rotateX(x);
 
 	//ライントレースする
-	do{
+	while(1) {
 			//道の色を検出する
 			getIRvalue();
 			//ライントレースする
@@ -106,8 +110,8 @@ void task_main(intptr_t exinf) {
 			} else {
 				gray_count = 0;
 			}
-		} while(1);
-
+		}
+	
 	//停止する
 	zumo.driveTank(0, 0);
 
