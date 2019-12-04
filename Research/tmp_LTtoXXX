@@ -52,6 +52,22 @@ void ltEscGrayload(bool mode){
 	zumo.driveTank(0, 0);
 }
 
+void ltEscCross(int mode){
+	int ir_num;
+	if(mode == RIGHT){
+		ir_num = 0;
+	} else {
+		ir_num = 5;
+	}
+
+	zumo.driveTank(70, 70);
+	do{
+		getIRvalue();
+	} while(IRvalue[ir_num] >= BLACK);
+	
+	zumo.driveTank(0, 0);
+}
+
 void ltToCross(int mode){
 	int cross_check;
 	int use_IRnum;
