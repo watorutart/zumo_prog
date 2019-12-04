@@ -27,6 +27,31 @@ void linetrace(int mode, unsigned int IR_values[6], int border, float Kp,float K
 }
 
 ---
+
+void ltEscGrayload(bool mode){
+	int ir_num;
+
+	resetPID();
+
+	if(mode == RIGHT){
+		ir_num = 5;
+	} else {
+		ir_num = 0;
+	}
+
+	do{
+		//道の色を検出
+		getIRvalue();
+		//道の色が黒ならループを抜ける
+		if(IR_values[ir_num] >= BLACK){
+			break;
+		}
+		linetrace(mode, IR_values, GW_border, kp, ki, kd);
+	} while(IR_values[ir_num] >= GRAY);//道の色が灰色ならループ
+
+	zumo.driveTank(0, 0);
+}
+
 void ltToCross(int mode){
 	int cross_check;
 	int use_IRnum;
