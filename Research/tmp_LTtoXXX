@@ -1,0 +1,110 @@
+void ltToCross(){
+	int cross_check;
+
+	//初期化
+	cross_check = 0;
+	resetPID();
+
+	//ライントレースする
+	while(1) {
+		//道の色を検出
+		getIRvalue();
+
+		//線の交差を検知したら
+		if(IR_values[0] >= BLACK){
+			cross_check++;
+			if(cross_check >= 3){
+				break;
+			}
+		} else {
+			cross_check = 0;
+		}
+		linetrace(IR_values, BW_border, kp, ki, kd);
+	}
+
+	//停止する
+	zumo.driveTank(0, 0);
+}
+
+void ltToXCross(int x){
+	int i = 0;
+	int cross_count = 0;
+	resetPID();
+
+	//ライントレースする
+	while(i <= x) {
+		//道の色を検出
+		getIRvalue();
+
+		//線の交差を検知したら
+		if(IR_values[5] >= BLACK){
+			cross_count++;
+			if(cross_count >= 3){
+				i++;
+			}
+			else {
+				cross_count=0;
+			}
+		}
+		linetrace(IR_values, BW_border, kp, ki, kd);
+	}
+
+	//停止する
+	zumo.driveTank(0, 0);
+}
+
+void ltToGrayload(){
+	int gray_count;
+
+	//初期化
+	gray_count = 0;
+	resetPID();
+
+	//ライントレースする
+	while(1) {
+		//道の色を検出する
+		getIRvalue();
+		//ライントレースする
+		linetrace(IR_values, BW_border, kp, ki, kd);
+		//灰色の道ならgray_check++
+		if(IR_values[5] >= GRAY && IR_values[5] < BLACK){
+			gray_count++;
+			if(gray_count > 3){
+				break;
+			}
+		} else {
+			gray_count = 0;
+		}
+	}
+
+	zumo.driveTank(0, 0);
+}
+
+void ltToXGrayload(int x){
+  int i = 0;
+	int gray_count;
+
+	//初期化
+	gray_count = 0;
+	resetPID();
+
+	//ライントレースする
+	while(i <= x) {
+		//道の色を検出する
+		getIRvalue();
+		//ライントレースする
+		linetrace(IR_values, BW_border, kp, ki, kd);
+		//灰色の道ならgray_check++
+		if(IR_values[5] >= GRAY && IR_values[5] < BLACK){
+			gray_count++;
+			if(gray_count > 3){
+				i++;
+        gray_count = 0;
+			}
+		} else {
+			gray_count = 0;
+		}
+	}
+
+	zumo.driveTank(0, 0);
+}
