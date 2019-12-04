@@ -1,6 +1,41 @@
-//modeはIRセンサのどれを用いるのかを表す
+const static bool RIGHT = true;
+const static bool LEFT = false;
+
+//modeはどちら側の端をライントレースするのかを表す
+void linetrace(int mode, unsigned int IR_values[6], int border, float Kp,float Ki,float Kd){
+	int left_speed = 0;
+	int right_speed = 0;
+
+	int pid_value = (int)pid_sample(IR_values[3], border, Kp,Ki,Kd);
+
+	//右端をライントレースする場合
+	if(mode == RIGHT){
+		left_speed = 70 - pid_value;
+		right_speed = 70 + pid_value;
+	}
+	// 左端をライントレースする場合
+	if(mode == LEFT){
+		left_speed = 70 + pid_value;
+		right_speed = 70 - pid_value;
+	}
+
+	pc.printf("IR_value: %d, L_sp: %d, R_sp: %d \r\n", IR_values[3], left_speed, right_speed);
+
+	zumo.driveTank(left_speed, right_speed);
+
+	dly_tsk(100);	//Delay.msDelay(1000);
+}
+
+---
 void ltToCross(int mode){
 	int cross_check;
+	int use_IRnum;
+	
+	if(mode == RIGHT){
+		use_IRnum = 0;
+	} else {
+		use_IRnum = 5;
+	}
 
 	//初期化
 	cross_check = 0;
@@ -12,7 +47,7 @@ void ltToCross(int mode){
 		getIRvalue();
 
 		//線の交差を検知したら
-		if(IR_values[mode] >= BLACK){
+		if(IR_values[use_IRnum] >= BLACK){
 			cross_check++;
 			if(cross_check >= 3){
 				break;
@@ -20,7 +55,7 @@ void ltToCross(int mode){
 		} else {
 			cross_check = 0;
 		}
-		linetrace(IR_values, BW_border, kp, ki, kd);
+		linetrace(mode, IR_values, BW_border, kp, ki, kd);
 	}
 
 	//停止する
@@ -30,6 +65,14 @@ void ltToCross(int mode){
 void ltToXCross(int mode, int x){
 	int i = 0;
 	int cross_count = 0;
+	int use_IRnum;
+
+	if(mode == RIGHT){
+		use_IRnum = 0;
+	} else {
+		use_IRnum = 5;
+	}
+	
 	resetPID();
 
 	//ライントレースする
@@ -38,7 +81,7 @@ void ltToXCross(int mode, int x){
 		getIRvalue();
 
 		//線の交差を検知したら
-		if(IR_values[mode] >= BLACK){
+		if(IR_values[use_IRnum] >= BLACK){
 			cross_count++;
 			if(cross_count >= 3){
 				i++;
@@ -47,7 +90,7 @@ void ltToXCross(int mode, int x){
 				cross_count=0;
 			}
 		}
-		linetrace(IR_values, BW_border, kp, ki, kd);
+		linetrace(mode, IR_values, BW_border, kp, ki, kd);
 	}
 
 	//停止する
@@ -56,6 +99,12 @@ void ltToXCross(int mode, int x){
 
 void ltToGrayload(int mode){
 	int gray_count;
+
+	if(mode == RIGHT){
+		use_IRnum = 5;
+	} else {
+		use_IRnum = 0;
+	}
 
 	//初期化
 	gray_count = 0;
@@ -68,7 +117,7 @@ void ltToGrayload(int mode){
 		//ライントレースする
 		linetrace(IR_values, BW_border, kp, ki, kd);
 		//灰色の道ならgray_check++
-		if(IR_values[mode] >= GRAY && IR_values[mode] < BLACK){
+		if(IR_values[use_IRnum] >= GRAY && IR_values[use_IRnum] < BLACK){
 			gray_count++;
 			if(gray_count > 3){
 				break;
@@ -82,8 +131,15 @@ void ltToGrayload(int mode){
 }
 
 void ltToXGrayload(int mode, int x){
-  int i = 0;
+	int i = 0;
 	int gray_count;
+	int use_IRnum;
+	
+	if(mode == RIGHT){
+		use_IRnum = 5;
+	} else {
+		use_IRnum = 0;
+	}
 
 	//初期化
 	gray_count = 0;
@@ -94,9 +150,9 @@ void ltToXGrayload(int mode, int x){
 		//道の色を検出する
 		getIRvalue();
 		//ライントレースする
-		linetrace(IR_values, BW_border, kp, ki, kd);
+		linetrace(mode, IR_values, BW_border, kp, ki, kd);
 		//灰色の道ならgray_check++
-		if(IR_values[mode] >= GRAY && IR_values[mode] < BLACK){
+		if(IR_values[use_IRnum] >= GRAY && IR_values[use_IRnum] < BLACK){
 			gray_count++;
 			if(gray_count > 3){
 				i++;
