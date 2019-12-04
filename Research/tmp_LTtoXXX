@@ -1,4 +1,5 @@
-void ltToCross(){
+//modeはIRセンサのどれを用いるのかを表す
+void ltToCross(int mode){
 	int cross_check;
 
 	//初期化
@@ -11,7 +12,7 @@ void ltToCross(){
 		getIRvalue();
 
 		//線の交差を検知したら
-		if(IR_values[0] >= BLACK){
+		if(IR_values[mode] >= BLACK){
 			cross_check++;
 			if(cross_check >= 3){
 				break;
@@ -26,7 +27,7 @@ void ltToCross(){
 	zumo.driveTank(0, 0);
 }
 
-void ltToXCross(int x){
+void ltToXCross(int mode, int x){
 	int i = 0;
 	int cross_count = 0;
 	resetPID();
@@ -37,7 +38,7 @@ void ltToXCross(int x){
 		getIRvalue();
 
 		//線の交差を検知したら
-		if(IR_values[5] >= BLACK){
+		if(IR_values[mode] >= BLACK){
 			cross_count++;
 			if(cross_count >= 3){
 				i++;
@@ -53,7 +54,7 @@ void ltToXCross(int x){
 	zumo.driveTank(0, 0);
 }
 
-void ltToGrayload(){
+void ltToGrayload(int mode){
 	int gray_count;
 
 	//初期化
@@ -67,7 +68,7 @@ void ltToGrayload(){
 		//ライントレースする
 		linetrace(IR_values, BW_border, kp, ki, kd);
 		//灰色の道ならgray_check++
-		if(IR_values[5] >= GRAY && IR_values[5] < BLACK){
+		if(IR_values[mode] >= GRAY && IR_values[mode] < BLACK){
 			gray_count++;
 			if(gray_count > 3){
 				break;
@@ -80,7 +81,7 @@ void ltToGrayload(){
 	zumo.driveTank(0, 0);
 }
 
-void ltToXGrayload(int x){
+void ltToXGrayload(int mode, int x){
   int i = 0;
 	int gray_count;
 
@@ -95,11 +96,11 @@ void ltToXGrayload(int x){
 		//ライントレースする
 		linetrace(IR_values, BW_border, kp, ki, kd);
 		//灰色の道ならgray_check++
-		if(IR_values[5] >= GRAY && IR_values[5] < BLACK){
+		if(IR_values[mode] >= GRAY && IR_values[mode] < BLACK){
 			gray_count++;
 			if(gray_count > 3){
 				i++;
-        gray_count = 0;
+			        gray_count = 0;
 			}
 		} else {
 			gray_count = 0;
