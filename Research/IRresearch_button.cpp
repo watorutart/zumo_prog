@@ -1,11 +1,8 @@
 #include <kernel.h>
 #include "kernel_cfg.h"
 #include "app.h"
-
 #include "mbed.h"
-
 #include "app_config.h"
-
 #include "Zumo.h"
 #include "Milkcocoa.h"
 
